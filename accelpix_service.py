@@ -1,0 +1,66 @@
+import asyncio
+from datetime import datetime
+from config import get_subscribe_symbols, load_anomaly_tickers, migrate_anomaly_tickers_table, update_last_trade_price
+from anomaly_handlers.buy_handler import handle_buy_anomaly1
+from anomaly_handlers.sell_handler import handle_sell_anomaly,handle_sell_anomaly1
+from pix_apidata import apidata_lib
+from db import init_db
+from ws_manager import broadcast_trade_update
+
+api = apidata_lib.ApiData()
+ANOMALY_TICKERS = {}
+
+def get_timeframe_label(current_time):
+    start_time = datetime(current_time.year, current_time.month, current_time.day, 9, 15)
+    if start_time <= current_time <= start_time.replace(hour=15, minute=15):
+        index = int((current_time - start_time).total_seconds() / 1800)
+        return chr(65 + index) if index < 12 else None
+    return None
+
+def on_trade(msg):
+    entries = msg if isinstance(msg, list) else [msg]
+    now = datetime.now()
+    timeframe = get_timeframe_label(now)
+    if not timeframe:
+        return
+
+    for entry in entries:
+        ticker = entry.get("ticker")
+        price = entry.get("price")
+        time = entry.get("time")
+
+        # ✅ Send update to frontend (async, no infinite loop)
+        asyncio.create_task(broadcast_trade_update(ticker, price))
+
+        # ✅ Update DB
+        #update_last_trade_price(ticker, price)
+
+        anomaly_type = ANOMALY_TICKERS.get(ticker)
+
+
+        if anomaly_type and anomaly_type.strip().lower() == 'buy':
+            print("Ticker : ", ticker, "Anamoly type : ", anomaly_type)
+            handle_buy_anomaly1(ticker,anomaly_type, price, timeframe, time)
+        elif anomaly_type and anomaly_type.strip().lower() == 'sell':
+            print("Ticker : ", ticker, "Anamoly type : ", anomaly_type)
+            #handle_sell_anomaly1(ticker,anomaly_type, price, timeframe, time)
+
+async def start_accelpix():
+    init_db()
+    migrate_anomaly_tickers_table()
+    global ANOMALY_TICKERS
+    ANOMALY_TICKERS = load_anomaly_tickers()
+
+    api.on_connection_started(lambda: print("✅ Accelpix Connected"))
+    api.on_connection_stopped(lambda: print("❌ Accelpix Disconnected"))
+    api.on_trade_update(on_trade)
+
+    await api.initialize("WdcH05al5jj3VYKpb3DCpxU4AMk=", "apidata.accelpix.in")
+    symbols = get_subscribe_symbols()
+    await api.subscribeAll(symbols)
+    print("📡 Subscribed to:", symbols)
+
+def run_event_loop():
+    loop = asyncio.get_event_loop()
+    loop.create_task(start_accelpix())
+    loop.run_forever()
