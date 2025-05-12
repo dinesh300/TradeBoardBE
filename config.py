@@ -1,5 +1,15 @@
 import sqlite3
+from datetime import datetime
 import accelpix_service
+from constants import (
+    STATUS_NO_BREAKOUT,
+    ACTION_NO_BREAKOUT,
+    DEFAULT_PRICE,
+    DEFAULT_TIMEFRAME,
+    TIME_FORMAT,
+)
+
+
 DB_PATH = "market_data.db"
 
 # === Subscribe Symbol Functions ===
@@ -57,10 +67,7 @@ def add_anomaly_symbol(symbol: str, type_: str = "Unknown"):
     )
 
     # Insert into anomalies_entry table (ensure entry for today if not exists)
-    from datetime import datetime
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    default_price = 0  # or use your OPEN_TRACKER if available
-    timeframe = "INIT"  # or calculate current timeframe
 
     # Insert into anomalies_entry with the correct anomaly type
     c.execute('''
@@ -68,7 +75,7 @@ def add_anomaly_symbol(symbol: str, type_: str = "Unknown"):
             stock, anomaly_type, market_open, tpos, action, status, current_price, threshold_price, time
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-    symbol.upper(), type_.lower(), default_price, timeframe, "Monitoring", "0", default_price, default_price, now))
+    symbol.upper(), type_.lower(), DEFAULT_PRICE, DEFAULT_TIMEFRAME, STATUS_NO_BREAKOUT, DEFAULT_PRICE, DEFAULT_PRICE, DEFAULT_PRICE, now))
 
     conn.commit()
     conn.close()
@@ -120,13 +127,11 @@ def load_anomaly_tickers():
         if not exists:
             from datetime import datetime
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            default_price = 0  # or use your OPEN_TRACKER if available
-            timeframe = "INIT"  # or calculate current timeframe
             c.execute('''
                 INSERT INTO anomalies_entry (
                     stock, anomaly_type, market_open, tpos, action, status, current_price, threshold_price, time
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (ticker, anomaly_type, default_price, timeframe, "Monitoring", "0", default_price, default_price, now))
+            ''', (ticker, anomaly_type, DEFAULT_PRICE, DEFAULT_TIMEFRAME, ACTION_NO_BREAKOUT, DEFAULT_PRICE, DEFAULT_PRICE, DEFAULT_PRICE, now))
             print(f"🟢 Inserted initial entry for {ticker} during load")
 
     conn.commit()
@@ -135,110 +140,68 @@ def load_anomaly_tickers():
     return {row[0].upper(): row[1].lower() for row in rows}
 
 
-def migrate_anomaly_tickers_table():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    try:
-        c.execute("ALTER TABLE anomaly_tickers ADD COLUMN type TEXT DEFAULT ''")
-        conn.commit()
-    except sqlite3.OperationalError:
-        # Ignore if column already exists
-        pass
-    finally:
-        conn.close()
-
-
-
-def update_last_trade_price(ticker: str, price: float):
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE subscribed_symbols SET last_trade_price = ? WHERE symbol = ?",
-            (price, ticker)
-        )
-        conn.commit()
-    except Exception as e:
-        print(f"Failed to update last_trade_price for {ticker}: {e}")
-    finally:
-        conn.close()
-
-
 # config.py (additional functions)
-
-def insert_anomaly_entry(ticker,anomaly_type, market_open,tpos,action, threshold_price, price, current_time):
-    print("Im inside insert_anomaly_entry Function")
+def insert_anomaly_entry(ticker, anomaly_type, market_open, tpos, action, threshold_price, price, current_time):
+    import sqlite3
+    print("I'm inside insert_anomaly_entry Function")
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+
+    # Fetch the latest market_open value for the given ticker
+    c.execute('''
+        SELECT market_open FROM anomalies_entry
+        WHERE stock = ?
+        ORDER BY time DESC LIMIT 1
+    ''', (ticker,))
+    row = c.fetchone()
+    previous_market_open = row[0] if row else market_open  # use previous if exists, else use provided
+
     c.execute('''
         INSERT INTO anomalies_entry (
-            stock,anomaly_type, market_open, tpos, action, status, current_price, threshold_price, time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?,?,?)
-    ''', (ticker,anomaly_type, market_open, tpos, action, "0", price, threshold_price, current_time))
-    print("Data inserted anamoly type : ", anomaly_type)
+            stock, anomaly_type, market_open, tpos, action, status, current_price, threshold_price, time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (ticker, anomaly_type, previous_market_open, tpos, action, DEFAULT_PRICE, price, threshold_price, current_time))
+
+    print("Data inserted anomaly type:", anomaly_type)
     conn.commit()
     conn.close()
-
-def get_high_price_for_ticker(ticker, start_time, end_time):
-    # Assuming you have stored trades in a table, or you're able to retrieve them from a data source
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""
-        SELECT MAX(price) FROM trades WHERE ticker = ? AND time BETWEEN ? AND ?
-    """, (ticker, start_time, end_time))
-    high_price = c.fetchone()[0]
-    conn.close()
-    return high_price
-
 
 
 def update_anomaly_action(ticker, action_text):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('''
-        UPDATE anomalies_entry
-        SET action = ?
-        WHERE stock = ? AND action = 'No Breakout'
-        ORDER BY time DESC LIMIT 1
-    ''', (action_text, ticker))
-    conn.commit()
-    conn.close()
 
-
-def update_current_price(ticker, price):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-
-    # Get the latest row ID for this ticker
+    # Get the rowid of the latest entry where action is 'No Breakout'
     c.execute('''
         SELECT rowid FROM anomalies_entry
-        WHERE stock = ?
-        ORDER BY time DESC
-        LIMIT 1
+        WHERE stock = ? AND action = 'No Breakout'
+        ORDER BY time DESC LIMIT 1
     ''', (ticker,))
-    result = c.fetchone()
+    row = c.fetchone()
 
-    if result:
-        rowid = result[0]
+    if row:
+        rowid = row[0]
         c.execute('''
             UPDATE anomalies_entry
-            SET current_price = ?
+            SET action = ?
             WHERE rowid = ?
-        ''', (price, rowid))
-        conn.commit()
+        ''', (action_text, rowid))
+
+    conn.commit()
     conn.close()
 
 
-def update_anomaly_open_and_timeframe(ticker, open_price, timeframe):
+def update_anomaly_open_and_timeframe(ticker, open_price, timeframe, action):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''
         UPDATE anomalies_entry
-        SET market_open = ?, tpos = ?
+        SET market_open = ?, tpos = ?, action = ?
         WHERE stock = ? AND time = (SELECT MAX(time) FROM anomalies_entry WHERE stock = ?)
-    ''', (open_price, timeframe, ticker, ticker))
+    ''', (open_price, timeframe, action, ticker, ticker))
     conn.commit()
     conn.close()
+
 
 
 

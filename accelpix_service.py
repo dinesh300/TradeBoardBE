@@ -1,7 +1,7 @@
 import asyncio
 from datetime import datetime
-from config import get_subscribe_symbols, load_anomaly_tickers, migrate_anomaly_tickers_table, update_last_trade_price
-from anomaly_handlers.buy_handler import handle_buy_anomaly1
+from config import get_subscribe_symbols, load_anomaly_tickers
+from anomaly_handlers.buy_handler import handle_buy_anomaly
 from anomaly_handlers.sell_handler import handle_sell_anomaly,handle_sell_anomaly1
 from pix_apidata import apidata_lib
 from db import init_db
@@ -29,25 +29,21 @@ def on_trade(msg):
         price = entry.get("price")
         time = entry.get("time")
 
-        # ✅ Send update to frontend (async, no infinite loop)
+        # ✅ Send update to frontend
         asyncio.create_task(broadcast_trade_update(ticker, price))
-
-        # ✅ Update DB
-        #update_last_trade_price(ticker, price)
 
         anomaly_type = ANOMALY_TICKERS.get(ticker)
 
-
         if anomaly_type and anomaly_type.strip().lower() == 'buy':
             print("Ticker : ", ticker, "Anamoly type : ", anomaly_type)
-            handle_buy_anomaly1(ticker,anomaly_type, price, timeframe, time)
+            asyncio.create_task(handle_buy_anomaly(ticker, anomaly_type, price, timeframe, time))
         elif anomaly_type and anomaly_type.strip().lower() == 'sell':
             print("Ticker : ", ticker, "Anamoly type : ", anomaly_type)
-            #handle_sell_anomaly1(ticker,anomaly_type, price, timeframe, time)
+            # asyncio.create_task(handle_sell_anomaly1(ticker, anomaly_type, price, timeframe, time))
 
 async def start_accelpix():
     init_db()
-    migrate_anomaly_tickers_table()
+
     global ANOMALY_TICKERS
     ANOMALY_TICKERS = load_anomaly_tickers()
 

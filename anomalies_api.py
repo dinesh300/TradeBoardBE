@@ -13,6 +13,7 @@ from config import (
     delete_anomaly_entries_by_stock,
     get_all_anomaly_entries
 )
+from ws_manager import broadcast_day_open_update
 from db import DB_PATH  # centralize DB path
 
 router = APIRouter()

@@ -2,8 +2,10 @@ from accelpix_service import start_accelpix
 from anomalies_api import router as anomalies_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, WebSocket
+from fastapi import WebSocketDisconnect
 import asyncio
 from ws_manager import connected_clients, broadcast_trade_update
+from Simulator import simulate_monitoring, simulate_day_open_broadcast
 
 app = FastAPI()
 app.include_router(anomalies_router)
@@ -22,7 +24,8 @@ app.add_middleware(
 async def on_startup():
     await start_accelpix()
     #asyncio.create_task(broadcast_counter())  # Start broadcasting
-    asyncio.create_task(broadcast_trade_update("TCS-1", 3500))
+    asyncio.create_task(simulate_day_open_broadcast())  # ✅ Start simulation
+
 
 
 @app.get("/")
@@ -31,11 +34,19 @@ def health():
 
 @app.websocket("/ws/trades")
 async def trade_websocket(websocket: WebSocket):
-    await websocket.accept()
-    connected_clients.append(websocket)
     try:
+        await websocket.accept()
+        connected_clients.add(websocket)
         while True:
-            await websocket.receive_text()  # Keep connection alive
+            await websocket.receive_text()  # Keep the connection alive
+    except WebSocketDisconnect:
+        print("🔌 WebSocket client disconnected")
     except Exception as e:
-        print("WebSocket closed:", e)
-        connected_clients.remove(websocket)
+        print(f"❌ WebSocket error: {e}")
+    finally:
+        if websocket in connected_clients:
+            connected_clients.discard(websocket)
+
+
+
+
