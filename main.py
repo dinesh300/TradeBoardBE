@@ -24,7 +24,7 @@ app.add_middleware(
 async def on_startup():
     await start_accelpix()
     #asyncio.create_task(broadcast_counter())  # Start broadcasting
-    asyncio.create_task(simulate_day_open_broadcast())  # ✅ Start simulation
+    #asyncio.create_task(simulate_day_open_broadcast())  # ✅ Start simulation
 
 
 

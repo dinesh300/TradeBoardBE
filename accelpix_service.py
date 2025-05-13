@@ -30,7 +30,7 @@ def on_trade(msg):
         time = entry.get("time")
 
         # ✅ Send update to frontend
-        asyncio.create_task(broadcast_trade_update(ticker, price))
+        asyncio.create_task(broadcast_trade_update(ticker, price,timeframe))
 
         anomaly_type = ANOMALY_TICKERS.get(ticker)
 

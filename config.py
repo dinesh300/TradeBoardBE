@@ -99,7 +99,6 @@ def load_anomaly_tickers():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
 
-    # Ensure anomaly_tickers table exists
     c.execute("""
         CREATE TABLE IF NOT EXISTS anomaly_tickers (
             ticker TEXT PRIMARY KEY,
@@ -108,33 +107,9 @@ def load_anomaly_tickers():
     """)
     conn.commit()
 
-    # Load anomaly tickers
     c.execute("SELECT * FROM anomaly_tickers")
     rows = c.fetchall()
 
-    # Also ensure an initial anomalies_entry exists for each
-    for row in rows:
-        ticker = row[0].upper()
-        anomaly_type = row[1].lower()
-
-        # Check if entry already exists for today
-        c.execute('''
-            SELECT 1 FROM anomalies_entry
-            WHERE stock = ? AND date(time) = date('now')
-        ''', (ticker,))
-        exists = c.fetchone()
-
-        if not exists:
-            from datetime import datetime
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            c.execute('''
-                INSERT INTO anomalies_entry (
-                    stock, anomaly_type, market_open, tpos, action, status, current_price, threshold_price, time
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (ticker, anomaly_type, DEFAULT_PRICE, DEFAULT_TIMEFRAME, ACTION_NO_BREAKOUT, DEFAULT_PRICE, DEFAULT_PRICE, DEFAULT_PRICE, now))
-            print(f"🟢 Inserted initial entry for {ticker} during load")
-
-    conn.commit()
     conn.close()
 
     return {row[0].upper(): row[1].lower() for row in rows}

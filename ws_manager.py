@@ -6,11 +6,12 @@ from constants import STATUS_NO_BREAKOUT, WS_MSG_TYPE_THRESHOLD_UPDATE
 connected_clients: Set[WebSocket] = set()
 
 
-async def broadcast_trade_update(ticker: str, price: float):
+async def broadcast_trade_update(ticker: str, price: float, timeframe:str):
     message = {
         "type": "trade_update",
         "symbol": ticker,
-        "lastTradePrice": price
+        "lastTradePrice": price,
+        "timeframe": timeframe,
     }
     print(f"📤 Broadcasting Trade Update: {message} to {len(connected_clients)} clients")
 
