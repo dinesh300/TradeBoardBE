@@ -1,7 +1,7 @@
 import sqlite3
 
-DB_PATH = "market_data.db"
-
+DB_PATH = "market_data_live.db"
+#DB_PATH = "market_data.db"
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()

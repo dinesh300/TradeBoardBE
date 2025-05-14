@@ -10,7 +10,8 @@ from constants import (
 )
 
 
-DB_PATH = "market_data.db"
+DB_PATH = "market_data_live.db"
+#DB_PATH = "market_data.db"
 
 # === Subscribe Symbol Functions ===
 def get_subscribe_symbols():
@@ -89,6 +90,8 @@ def remove_anomaly_symbol(symbol: str):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("DELETE FROM anomaly_tickers WHERE ticker = ?", (symbol.upper(),))
+    # Delete all related entries in anomalies_entry
+    c.execute("DELETE FROM anomalies_entry WHERE stock = ?", (symbol.upper(),))
     conn.commit()
     conn.close()
 

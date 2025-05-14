@@ -2,10 +2,14 @@ import asyncio
 from datetime import datetime
 from config import get_subscribe_symbols, load_anomaly_tickers
 from anomaly_handlers.buy_handler import handle_buy_anomaly
-from anomaly_handlers.sell_handler import handle_sell_anomaly,handle_sell_anomaly1
+from anomaly_handlers.sell_handler import handle_sell_anomaly
 from pix_apidata import apidata_lib
 from db import init_db
-from ws_manager import broadcast_trade_update
+from ws_manager import broadcast_trade_update, broadcast_single_print
+from handlers.ohlc_handler import update_ohlc
+from handlers.single_print_handler import detect_single_print
+
+
 
 api = apidata_lib.ApiData()
 ANOMALY_TICKERS = {}
@@ -31,15 +35,37 @@ def on_trade(msg):
 
         # ✅ Send update to frontend
         asyncio.create_task(broadcast_trade_update(ticker, price,timeframe))
+        # ✅ Update OHLC data
+        update_ohlc(ticker, timeframe, price)
+
+        # ✅ Detect single print
+        #result = detect_single_print(ticker, timeframe, price)
+        #if result:
+            #print(f"🟢 Single Print ({result['type'].upper()}): {ticker} at {timeframe}")
+            # sample_data = {
+            #     "type": "single_print",
+            #     "ticker": "AAPL",
+            #     "spType": "buy",
+            #     "breakout": 150.25,
+            #     "ltp": 151.30,
+            #     "action": "Breakout",
+            #     "status": "confirmed",
+            #     "timeframe": "A"
+            # }
+            # print("📤 Sending test single print to clients...")
+            # asyncio.create_task(broadcast_single_print(sample_data))
+            # # Optional: broadcast to clients
+            # asyncio.create_task(broadcast_single_print(result))
 
         anomaly_type = ANOMALY_TICKERS.get(ticker)
+
 
         if anomaly_type and anomaly_type.strip().lower() == 'buy':
             print("Ticker : ", ticker, "Anamoly type : ", anomaly_type)
             asyncio.create_task(handle_buy_anomaly(ticker, anomaly_type, price, timeframe, time))
         elif anomaly_type and anomaly_type.strip().lower() == 'sell':
             print("Ticker : ", ticker, "Anamoly type : ", anomaly_type)
-            # asyncio.create_task(handle_sell_anomaly1(ticker, anomaly_type, price, timeframe, time))
+            asyncio.create_task(handle_sell_anomaly(ticker, anomaly_type, price, timeframe, time))
 
 async def start_accelpix():
     init_db()

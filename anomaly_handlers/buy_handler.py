@@ -21,7 +21,7 @@ OPEN_UPDATED_FOR_A = {}
 
 
 async def handle_buy_anomaly(ticker, anomaly_type, price, timeframe, time):
-    print("Inside Handle_buy_anomaly method")
+    #print("Inside Handle_buy_anomaly method")
     now = datetime.now()
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -44,7 +44,7 @@ async def handle_buy_anomaly(ticker, anomaly_type, price, timeframe, time):
     else:
         HIGH_TRACKER[ticker] = max(HIGH_TRACKER[ticker], price)
 
-    print("Last timeframe tracker : ", LAST_TIMEFRAME_TRACKER)
+    #print("Last timeframe tracker : ", LAST_TIMEFRAME_TRACKER)
 
     # Timeframe has changed
     if ticker in LAST_TIMEFRAME_TRACKER and LAST_TIMEFRAME_TRACKER[ticker] != timeframe:
