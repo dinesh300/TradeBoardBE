@@ -96,22 +96,21 @@ async def broadcast_new_anomaly(
 async def broadcast_single_print(result: dict):
     message = {
         "type": "single_print",
-        "symbol": result["ticker"],    # Stock symbol, e.g., "AAPL"
-        "spType": result["spType"],    # Type of single print ("buy" or "sell")
-        "breakout": result["breakout"],  # Breakout level (previous timeframe high/low)
-        "ltp": result["ltp"],          # Last trade price (LTP)
-        "action": result["action"],    # Action (Breakout or No Breakout)
-        "status": result["status"],    # Status (confirmed or pending)
-        "timeframe": result["timeframe"],  # Timeframe (e.g., "A")
+        "symbol": result["ticker"],
+        "spType": result["spType"],
+        "breakout": result["breakout"],
+        "ltp": result["ltp"],
+        "action": result["action"],
+        "status": result["status"],
+        "timeframe": result["timeframe"],
+        "sp_timeframe": result.get("sp_timeframe"),  # Optional, helpful for debugging
     }
 
     print(f"📤 Broadcasting Single Print: {message} to {len(connected_clients)} clients")
 
-    # Send the message to all connected clients
     for client in connected_clients.copy():
         try:
             await client.send_json(message)
         except Exception as e:
             connected_clients.discard(client)
             print(f"❌ Removed client due to error: {e}")
-
