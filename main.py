@@ -3,9 +3,8 @@ from anomalies_api import router as anomalies_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, WebSocket
 from fastapi import WebSocketDisconnect
-import asyncio
-from ws_manager import connected_clients, broadcast_trade_update
-from Simulator import simulate_monitoring, simulate_day_open_broadcast
+from ws_manager import connected_clients
+
 
 app = FastAPI()
 app.include_router(anomalies_router)
