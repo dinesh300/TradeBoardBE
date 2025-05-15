@@ -9,7 +9,7 @@ from ws_manager import connected_clients
 app = FastAPI()
 app.include_router(anomalies_router)
 
-origins = ["http://localhost:3000"]
+origins = ["http://localhost:3000","https://courageous-medovik-a4968d.netlify.app/"]
 
 app.add_middleware(
     CORSMiddleware,
