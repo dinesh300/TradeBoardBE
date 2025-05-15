@@ -132,3 +132,9 @@ def delete_anomaly_entries(ticker: str):
         return {"message": f"Anomaly entries for '{ticker}' deleted successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@router.get("/gocool")
+def get_subscribed_symbols():
+    return "Poolu"
