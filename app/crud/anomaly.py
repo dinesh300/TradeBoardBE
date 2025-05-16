@@ -39,7 +39,11 @@ def add_anomaly_symbol(symbol: str, type_: str = "Unknown"):
 
     # Insert into anomaly_tickers table
     c.execute(
-        "INSERT OR IGNORE INTO anomaly_tickers (ticker, type) VALUES (?, ?)",
+        """
+        INSERT INTO anomaly_tickers (ticker, type)
+        VALUES (?, ?)
+        ON CONFLICT(ticker) DO UPDATE SET type = excluded.type
+        """,
         (symbol.upper(), type_)
     )
 
