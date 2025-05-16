@@ -55,10 +55,13 @@ def add_anomaly_symbol(symbol: str, type_: str = "Unknown"):
 
     conn.commit()
     conn.close()
+
+    # ✅ Reload shared anomaly ticker list
+    # from app.accelpix_service import ANOMALY_TICKERS
+    # global ANOMALY_TICKERS
+    # ANOMALY_TICKERS = load_anomaly_tickers()
+
     print(f"🟢 Inserted anomaly entry and added {symbol.upper()} with type {type_} to anomaly_tickers.")
-
-
-    app.accelpix_service.ANOMALY_TICKERS = load_anomaly_tickers()
 
 
 def remove_anomaly_symbol(symbol: str):
