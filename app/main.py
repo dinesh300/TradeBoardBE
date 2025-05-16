@@ -1,35 +1,39 @@
-from accelpix_service import start_accelpix
-from anomalies_api import router as anomalies_router
+# app/main.py
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, WebSocket
-from fastapi import WebSocketDisconnect
-from ws_manager import connected_clients
 
+from app.routers import anomaly, subscribe
+from app.accelpix_service import start_accelpix_loop
+import asyncio
+from fastapi import  WebSocket
+from fastapi import WebSocketDisconnect
+from app.ws_manager import connected_clients
+from app.database import init_db
 
 app = FastAPI()
-app.include_router(anomalies_router)
-
 origins = ["http://localhost:3000","https://courageous-medovik-a4968d.netlify.app"]
-
+# CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Routers
+app.include_router(anomaly.router)
+app.include_router(subscribe.router)
+
 @app.on_event("startup")
-async def on_startup():
-    await start_accelpix()
-    #asyncio.create_task(broadcast_counter())  # Start broadcasting
-    #asyncio.create_task(simulate_day_open_broadcast())  # ✅ Start simulation
-
-
+async def startup():
+    init_db()
+    # Start the Accelpix service loop as a background task
+    asyncio.create_task(start_accelpix_loop())
 
 @app.get("/")
-def health():
-    return {"status": "running"}
+async def root():
+    return {"message": "Backend running with Accelpix service"}
 
 @app.websocket("/ws/trades")
 async def trade_websocket(websocket: WebSocket):
@@ -45,7 +49,4 @@ async def trade_websocket(websocket: WebSocket):
     finally:
         if websocket in connected_clients:
             connected_clients.discard(websocket)
-
-
-
 

@@ -1,7 +1,12 @@
-# constants.py
+# app/constants.py
+DEFAULT_PRICE = 0.0
+DEFAULT_TIMEFRAME = "-"
+
+# Database name
+DB_PATH = "market_data_live.db"
 
 # Statuses
-STATUS_NO_BREAKOUT = "-"
+STATUS_NO_BREAKOUT = "no_breakout"
 STATUS_BREAKOUT = "-"
 
 # Actions
@@ -9,8 +14,6 @@ ACTION_NO_BREAKOUT = "No Breakout"
 ACTION_BREAKOUT = "Breakout"
 
 # Default Values
-DEFAULT_PRICE = 0
-DEFAULT_TIMEFRAME = "-"
 TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 # WS Message Types

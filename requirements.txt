@@ -3,3 +3,8 @@ uvicorn
 yfinance
 pandas
 pix_apidata
+sqlalchemy
+psycopg2-binary
+python-dotenv
+asyncpg
+pydantic

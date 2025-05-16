@@ -1,7 +1,7 @@
 import sqlite3
+from app.constants import DB_PATH
 
-DB_PATH = "market_data_live.db"
-#DB_PATH = "market_data.db"
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -19,7 +19,7 @@ def init_db():
 
     c.execute('''CREATE TABLE IF NOT EXISTS subscribed_symbols (
         symbol TEXT PRIMARY KEY,last_trade_price REAL
-        
+
     )''')
 
     c.execute('''CREATE TABLE IF NOT EXISTS anomalies_entry (
