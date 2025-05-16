@@ -1,7 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from asyncio import sleep
 from app.routers import anomaly, subscribe
 from app.accelpix_service import start_accelpix_loop
 import asyncio
@@ -15,7 +15,7 @@ origins = ["http://localhost:3000","https://courageous-medovik-a4968d.netlify.ap
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[origins],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,18 +35,23 @@ async def startup():
 async def root():
     return {"message": "Backend running with Accelpix service"}
 
+
 @app.websocket("/ws/trades")
 async def trade_websocket(websocket: WebSocket):
     try:
         await websocket.accept()
         connected_clients.add(websocket)
         while True:
-            await websocket.receive_text()  # Keep the connection alive
+            try:
+                await websocket.receive_text()  # Or implement ping/pong logic here
+            except asyncio.TimeoutError:
+                break
+            await sleep(5)
     except WebSocketDisconnect:
-        print("🔌 WebSocket client disconnected")
+        logger.info("🔌 WebSocket client disconnected")
     except Exception as e:
-        print(f"❌ WebSocket error: {e}")
+        logger.error(f"❌ WebSocket error: {e}")
     finally:
-        if websocket in connected_clients:
-            connected_clients.discard(websocket)
+        connected_clients.discard(websocket)
+
 
