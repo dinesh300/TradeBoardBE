@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
-from app.crud.anomaly import add_anomaly_symbol, get_anomaly_symbols,remove_anomaly_symbol, get_all_anomaly_entries, delete_anomaly_entries_by_stock
+from app.crud.anomaly import add_anomaly_symbol
+from app.crud.anomaly import (get_anomaly_symbols,remove_anomaly_symbol, get_all_anomaly_entries, delete_anomaly_entries_by_stock)
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/anomaly", tags=["Anomaly"])
