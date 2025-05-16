@@ -5,6 +5,10 @@ DEFAULT_TIMEFRAME = "-"
 # Database name
 DB_PATH = "market_data_live.db"
 
+# app/globals.py
+ANOMALY_TICKERS = {}
+
+
 # Statuses
 STATUS_NO_BREAKOUT = "no_breakout"
 STATUS_BREAKOUT = "-"

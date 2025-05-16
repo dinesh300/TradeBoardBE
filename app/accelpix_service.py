@@ -9,9 +9,10 @@ from pix_apidata import apidata_lib
 from app.ws_manager import broadcast_trade_update
 from app.crud.anomaly import load_anomaly_tickers
 from app.crud.subscribe import get_subscribe_symbols
+from app.constants import ANOMALY_TICKERS
 
 api = apidata_lib.ApiData()
-ANOMALY_TICKERS = {}
+
 
 def get_timeframe_label(current_time):
     start_time = datetime(current_time.year, current_time.month, current_time.day, 9, 15)
@@ -52,8 +53,9 @@ def on_trade(msg):
             asyncio.create_task(handle_sell_anomaly(ticker, anomaly_type, price, timeframe, time))
 
 async def start_accelpix_loop():
-    global ANOMALY_TICKERS
-    ANOMALY_TICKERS = load_anomaly_tickers()
+
+    ANOMALY_TICKERS.update(load_anomaly_tickers())
+    #ANOMALY_TICKERS = load_anomaly_tickers()
 
     api.on_connection_started(lambda: print("✅ Accelpix Connected"))
     api.on_connection_stopped(lambda: print("❌ Accelpix Disconnected"))

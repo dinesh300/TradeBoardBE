@@ -6,6 +6,7 @@ from app.constants import (
     DEFAULT_PRICE,
     DEFAULT_TIMEFRAME,
     TIME_FORMAT,
+    ANOMALY_TICKERS
 )
 from app.constants import DB_PATH
 
@@ -55,12 +56,10 @@ def add_anomaly_symbol(symbol: str, type_: str = "Unknown"):
 
     conn.commit()
     conn.close()
-
+    print(f"Before Anomoly ticker insert : {ANOMALY_TICKERS}")
     # ✅ Reload shared anomaly ticker list
-    # from app.accelpix_service import ANOMALY_TICKERS
-    # global ANOMALY_TICKERS
-    # ANOMALY_TICKERS = load_anomaly_tickers()
-
+    ANOMALY_TICKERS.update(load_anomaly_tickers())
+    print(f"After Anomoly ticker insert : {ANOMALY_TICKERS}")
     print(f"🟢 Inserted anomaly entry and added {symbol.upper()} with type {type_} to anomaly_tickers.")
 
 
