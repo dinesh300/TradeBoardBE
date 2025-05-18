@@ -20,14 +20,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+init_db()
 # Routers
 app.include_router(anomaly.router)
 app.include_router(subscribe.router)
 
 @app.on_event("startup")
 async def startup():
-    init_db()
     # Start the Accelpix service loop as a background task
     asyncio.create_task(start_accelpix_loop())
 
