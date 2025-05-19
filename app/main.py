@@ -2,13 +2,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from asyncio import sleep
-from app.routers import anomaly, subscribe
+from app.routes import anomaly_entry_routes, subscribed_routes
 from app.accelpix_service import start_accelpix_loop
 import asyncio
 from fastapi import  WebSocket
 from fastapi import WebSocketDisconnect
 from app.ws_manager import connected_clients
-from app.database import init_db
+from fastapi import FastAPI
+from app.routes import subscribed_routes, anomaly_ticker_routes, anomaly_entry_routes
+
 
 app = FastAPI()
 origins = ["http://localhost:3000","https://courageous-medovik-a4968d.netlify.app"]
@@ -20,10 +22,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-init_db()
+#init_db()
 # Routers
-app.include_router(anomaly.router)
-app.include_router(subscribe.router)
+app.include_router(subscribed_routes.router)
+app.include_router(anomaly_ticker_routes.router)
+app.include_router(anomaly_entry_routes.router)
+
 
 @app.on_event("startup")
 async def startup():

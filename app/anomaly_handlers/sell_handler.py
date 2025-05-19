@@ -1,9 +1,8 @@
-# sell_handler.py
-
 from datetime import datetime
-from app.crud.anomaly import (
+from sqlalchemy.orm import Session
+from app.crud.anomaly_entry import (
     insert_anomaly_entry,
-    update_anomaly_open_and_timeframe,
+    update_open_and_timeframe,
     update_anomaly_action
 )
 from app.ws_manager import broadcast_threshold_update, broadcast_day_open_update
@@ -24,13 +23,20 @@ BREAKDOWN_RECORDED = {}
 OPEN_UPDATED_FOR_A_SELL = {}
 
 
-async def handle_sell_anomaly(ticker, anomaly_type, price, timeframe, time):
+async def handle_sell_anomaly(
+    db: Session,
+    ticker: str,
+    anomaly_type: str,
+    price: float,
+    timeframe: str,
+    time: str
+):
     now = datetime.now()
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
     # Handle open update only once during 'A' timeframe
     if timeframe == 'A' and ticker not in OPEN_UPDATED_FOR_A_SELL:
-        update_anomaly_open_and_timeframe(ticker, price, timeframe, ACTION_NO_BREAKOUT)
+        update_open_and_timeframe(db, ticker, price, timeframe, ACTION_NO_BREAKOUT)
         await broadcast_day_open_update(
             ticker.upper(),
             price,       # Market open price
@@ -55,14 +61,14 @@ async def handle_sell_anomaly(ticker, anomaly_type, price, timeframe, time):
 
         # Insert anomaly entry for the completed timeframe
         insert_anomaly_entry(
+            db=db,
             ticker=ticker,
             anomaly_type=anomaly_type,
             market_open=OPEN_PRICE_TRACKER_SELL.get(ticker, price),
             tpos=timeframe,
             action=ACTION_NO_BREAKOUT,
             threshold_price=previous_threshold,
-            price=price,
-            current_time=current_time
+            price=price
         )
 
         await broadcast_threshold_update(
@@ -82,7 +88,7 @@ async def handle_sell_anomaly(ticker, anomaly_type, price, timeframe, time):
         # Use previous timeframe's low to detect breakdown
         threshold_price = PREVIOUS_TIMEFRAME_LOW.get(ticker)
         if threshold_price and price < threshold_price and not BREAKDOWN_RECORDED.get(ticker, False):
-            update_anomaly_action(ticker.upper(), ACTION_BREAKOUT)
+            update_anomaly_action(db, ticker.upper(), ACTION_BREAKOUT)
 
             await broadcast_threshold_update(
                 ticker.upper(),
