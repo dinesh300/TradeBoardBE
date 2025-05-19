@@ -1,7 +1,8 @@
 from typing import Set
 from fastapi import WebSocket
 from app.constants import STATUS_NO_BREAKOUT, WS_MSG_TYPE_THRESHOLD_UPDATE
-
+import random
+import asyncio
 # Use a set for better performance and safety
 connected_clients: Set[WebSocket] = set()
 
@@ -114,3 +115,27 @@ async def broadcast_single_print(result: dict):
         except Exception as e:
             connected_clients.discard(client)
             print(f"❌ Removed client due to error: {e}")
+
+async def broadcast_random_counter():
+    counter = 0
+    while True:
+        if connected_clients:
+            message = {
+                "type": "random_counter",
+                "counter": counter,
+                "randomValue": random.randint(1, 100),
+            }
+            print(f"📤 Broadcasting Random Counter: {message} to {len(connected_clients)} clients")
+            disconnected = set()
+            for client in connected_clients:
+                try:
+                    await client.send_json(message)
+                except Exception as e:
+                    print(f"❌ Removing client due to error: {e}")
+                    disconnected.add(client)
+            for client in disconnected:
+                connected_clients.discard(client)
+        else:
+            print("No clients connected to broadcast.")
+        counter += 1
+        await asyncio.sleep(5)

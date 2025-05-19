@@ -8,7 +8,7 @@ from app.anomaly_handlers.sell_handler import handle_sell_anomaly
 from app.utils.ohlc_handler import update_ohlc
 from app.utils.single_print_handler import detect_single_print
 from pix_apidata import apidata_lib
-from app.ws_manager import broadcast_trade_update
+from app.ws_manager import broadcast_trade_update, broadcast_random_counter
 from app.crud.anomaly_ticker import load_anomaly_tickers
 from app.crud.subscribed import get_subscribe_symbols
 from app.constants import ANOMALY_TICKERS
@@ -55,7 +55,8 @@ def on_trade(msg):
 
 async def start_accelpix_loop():
     print("🔁 Entered start_accelpix_loop")
-
+    print("🚀 Starting broadcast_random_counter task")
+    asyncio.create_task(broadcast_random_counter())
     # Load anomaly tickers
     db = SessionLocal()
     try:
