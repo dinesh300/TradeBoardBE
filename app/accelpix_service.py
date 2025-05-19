@@ -55,8 +55,8 @@ def on_trade(msg):
 
 async def start_accelpix_loop():
     print("🔁 Entered start_accelpix_loop")
-    print("🚀 Starting broadcast_random_counter task")
-    asyncio.create_task(broadcast_random_counter())
+    # print("🚀 Starting broadcast_random_counter task")
+    # asyncio.create_task(broadcast_random_counter())
     # Load anomaly tickers
     db = SessionLocal()
     try:
