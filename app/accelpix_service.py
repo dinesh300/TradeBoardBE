@@ -61,13 +61,12 @@ async def start_accelpix_loop():
     try:
         db = SessionLocal()
         subscribed = get_subscribed_symbols_with_price(db)
-        symbols = [s.symbol for s in subscribed]
+        symbols = [s["symbol"] for s in subscribed]  # ✅ FIXED
 
         print("Starting Accelpix connection...")
-        await api.connect()  # Ensure this initializes and sets _ws correctly internally
+        await api.connect()
 
         await api.subscribeAll(symbols)
-
         print("Subscribed to symbols:", symbols)
 
         while True:
