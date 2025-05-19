@@ -9,5 +9,5 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 psycopg2-binary
-signalrcore==0.10.1
+signalrcore
 websockets==10.3

@@ -12,7 +12,8 @@ from app.ws_manager import broadcast_trade_update
 from app.crud.anomaly_ticker import load_anomaly_tickers
 from app.crud.subscribed import get_subscribe_symbols
 from app.constants import ANOMALY_TICKERS
-from pix_apidata.apidata_lib import AccelpixApi
+from app.pix_apidata.apidata_lib import AccelpixApi
+from app.crud.subscribed import get_subscribed_symbols_with_price
 
 api = AccelpixApi()  # This should handle connection internally
 
@@ -59,7 +60,7 @@ def on_trade(msg):
 async def start_accelpix_loop():
     try:
         db = SessionLocal()
-        subscribed = get_subscribed_symbols(db)
+        subscribed = get_subscribed_symbols_with_price(db)
         symbols = [s.symbol for s in subscribed]
 
         print("Starting Accelpix connection...")
