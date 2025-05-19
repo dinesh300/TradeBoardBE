@@ -26,7 +26,7 @@ def add_symbols(request: SymbolsRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/", response_model=List[str])
+@router.get("/without-Price", response_model=List[str])
 def all_symbols(db: Session = Depends(get_db)):
     return subscribed.get_subscribe_symbols(db)
 
@@ -35,3 +35,8 @@ def all_symbols(db: Session = Depends(get_db)):
 def remove(symbol: str, db: Session = Depends(get_db)):
     subscribed.remove_subscribe_symbol(db, symbol)
     return {"message": f"{symbol.upper()} removed"}
+
+
+@router.get("/")
+def subscribed_symbols_with_price(db: Session = Depends(get_db)):
+    return subscribed.get_subscribed_symbols_with_price(db)

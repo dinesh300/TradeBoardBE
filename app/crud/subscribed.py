@@ -17,3 +17,14 @@ def add_subscribe_symbol(db: Session, symbol: str, price: float | None = None):
 def remove_subscribe_symbol(db: Session, symbol: str):
     db.query(SubscribedSymbol).filter(SubscribedSymbol.symbol == symbol.upper()).delete()
     db.commit()
+
+
+def get_subscribed_symbols_with_price(db: Session) -> list[dict]:
+    results = db.query(SubscribedSymbol).all()
+    return [
+        {
+            "symbol": row.symbol,
+            "lastTradePrice": row.last_trade_price
+        }
+        for row in results
+    ]
