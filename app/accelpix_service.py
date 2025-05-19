@@ -54,46 +54,22 @@ def on_trade(msg):
 
 
 async def start_accelpix_loop():
-    print("🔁 Entered start_accelpix_loop")
-
-    # Load anomaly tickers
     db = SessionLocal()
     try:
-        tickers = load_anomaly_tickers(db)
-        ANOMALY_TICKERS.update(tickers)
-        print("📊 Loaded anomaly tickers:", tickers)
-    except Exception as e:
-        print("❌ Failed to load anomaly tickers:", e)
+        ANOMALY_TICKERS.update(load_anomaly_tickers(db))
     finally:
         db.close()
 
-    # Setup event handlers
-    def on_connected():
-        print("✅ Accelpix Connected")
-
-    def on_disconnected():
-        print("❌ Accelpix Disconnected")
-
-    api.on_connection_started(on_connected)
-    api.on_connection_stopped(on_disconnected)
+    api.on_connection_started(lambda: print("✅ Accelpix Connected"))
+    api.on_connection_stopped(lambda: print("❌ Accelpix Disconnected"))
     api.on_trade_update(on_trade)
 
-    # Initialize Accelpix connection
-    try:
-        print("🔌 Initializing Accelpix...")
-        await api.initialize("WdcH05al5jj3VYKpb3DCpxU4AMk=", "apidata.accelpix.in")
-        print("🔐 Accelpix initialized")
-    except Exception as e:
-        print("❌ Failed to initialize Accelpix:", e)
-        return
+    await api.initialize("WdcH05al5jj3VYKpb3DCpxU4AMk=", "apidata.accelpix.in")
 
-    # Subscribe to symbols
     db = SessionLocal()
     try:
         symbols = get_subscribe_symbols(db)
-        await api.subscribeAll(symbols)
-        print("📡 Subscribed to symbols:", symbols)
-    except Exception as e:
-        print("❌ Failed to subscribe to symbols:", e)
     finally:
         db.close()
+
+    await api.subscribeAll(symbols)
