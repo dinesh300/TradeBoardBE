@@ -7,13 +7,14 @@ from app.anomaly_handlers.buy_handler import handle_buy_anomaly
 from app.anomaly_handlers.sell_handler import handle_sell_anomaly
 from app.utils.ohlc_handler import update_ohlc
 from app.utils.single_print_handler import detect_single_print
-from pix_apidata import apidata_lib
+#from pix_apidata import apidata_lib
 from app.ws_manager import broadcast_trade_update
 from app.crud.anomaly_ticker import load_anomaly_tickers
 from app.crud.subscribed import get_subscribe_symbols
 from app.constants import ANOMALY_TICKERS
+from pix_apidata.apidata_lib import AccelpixApi
 
-api = apidata_lib.ApiData()
+api = AccelpixApi()  # This should handle connection internally
 
 def get_timeframe_label(current_time):
     start_time = datetime(current_time.year, current_time.month, current_time.day, 9, 15)
@@ -53,23 +54,23 @@ def on_trade(msg):
     db.close()
 
 
+
+
 async def start_accelpix_loop():
-    db = SessionLocal()
     try:
-        ANOMALY_TICKERS.update(load_anomaly_tickers(db))
-    finally:
-        db.close()
+        db = SessionLocal()
+        subscribed = get_subscribed_symbols(db)
+        symbols = [s.symbol for s in subscribed]
 
-    api.on_connection_started(lambda: print("✅ Accelpix Connected"))
-    api.on_connection_stopped(lambda: print("❌ Accelpix Disconnected"))
-    api.on_trade_update(on_trade)
+        print("Starting Accelpix connection...")
+        await api.connect()  # Ensure this initializes and sets _ws correctly internally
 
-    await api.initialize("WdcH05al5jj3VYKpb3DCpxU4AMk=", "apidata.accelpix.in")
+        await api.subscribeAll(symbols)
 
-    db = SessionLocal()
-    try:
-        symbols = get_subscribe_symbols(db)
-    finally:
-        db.close()
+        print("Subscribed to symbols:", symbols)
 
-    await api.subscribeAll(symbols)
+        while True:
+            await asyncio.sleep(1)
+
+    except Exception as e:
+        print(f"Exception in Accelpix loop: {e}")

@@ -1,11 +1,13 @@
-fastapi
-uvicorn
 yfinance
 pandas
 pix_apidata
-sqlalchemy
 psycopg2-binary
 python-dotenv
 asyncpg
 pydantic
-websockets
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+signalrcore==0.10.1
+websockets==10.3
