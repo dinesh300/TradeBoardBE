@@ -10,6 +10,9 @@ from fastapi import WebSocketDisconnect
 from app.ws_manager import connected_clients
 from fastapi import FastAPI
 from app.routes import subscribed_routes, anomaly_ticker_routes, anomaly_entry_routes
+import logging
+
+logger = logging.getLogger("uvicorn.error")  # or __name__
 
 
 app = FastAPI()
@@ -31,6 +34,7 @@ app.include_router(anomaly_entry_routes.router)
 
 @app.on_event("startup")
 async def startup():
+    logger.info("🚀 FastAPI startup triggered")
     # Start the Accelpix service loop as a background task
     asyncio.create_task(start_accelpix_loop())
 
