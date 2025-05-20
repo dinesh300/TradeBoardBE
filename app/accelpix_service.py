@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, time as dtime
 from sqlalchemy.orm import Session
 from app.database_pg import SessionLocal
 
@@ -15,27 +15,37 @@ from app.constants import ANOMALY_TICKERS
 
 api = apidata_lib.ApiData()
 
-def get_timeframe_label(current_time):
-    start_time = datetime(current_time.year, current_time.month, current_time.day, 9, 15)
-    if start_time <= current_time <= start_time.replace(hour=15, minute=15):
-        index = int((current_time - start_time).total_seconds() / 1800)
+def get_timeframe_label(trade_time: datetime):
+    start = trade_time.replace(hour=9, minute=15, second=0, microsecond=0)
+    end = trade_time.replace(hour=15, minute=15, second=0, microsecond=0)
+    if start <= trade_time <= end:
+        index = int((trade_time - start).total_seconds() / 1800)
         return chr(65 + index) if 0 <= index < 13 else None
     return None
+
+def is_within_trading_time(unix_ts: int) -> tuple[bool, str | None, datetime | None]:
+    dt = datetime.utcfromtimestamp(unix_ts)
+    trade_time = dt.time()
+    start_time = dtime(9, 15)
+    end_time = dtime(15, 15)
+    if start_time <= trade_time <= end_time:
+        return True, get_timeframe_label(dt), dt
+    return False, None, None
 
 def on_trade(msg):
     print("🔄 Trade message received:", msg)
     entries = msg if isinstance(msg, list) else [msg]
-    now = datetime.now()
-    timeframe = get_timeframe_label(now)
-    if not timeframe:
-        print("⏱️ Outside trading timeframe")
-        return
 
     db: Session = SessionLocal()
     for entry in entries:
         ticker = entry.get("ticker")
         price = entry.get("price")
-        time = entry.get("time")
+        unix_ts = entry.get("time")
+
+        valid, timeframe, trade_dt = is_within_trading_time(unix_ts)
+        if not valid:
+            print("⏱️ Outside trading timeframe")
+            continue
 
         asyncio.create_task(broadcast_trade_update(ticker, price, timeframe))
         # update_ohlc(ticker, timeframe, price)
@@ -45,19 +55,17 @@ def on_trade(msg):
 
         if anomaly_type and anomaly_type.strip().lower() == 'buy':
             print(f"📈 BUY -> Ticker: {ticker}, TPO: {timeframe}, Price: {price}")
-            asyncio.create_task(handle_buy_anomaly(db, ticker, anomaly_type, price, timeframe, time))
+            asyncio.create_task(handle_buy_anomaly(db, ticker, anomaly_type, price, timeframe, unix_ts))
         elif anomaly_type and anomaly_type.strip().lower() == 'sell':
             print(f"📉 SELL -> Ticker: {ticker}, TPO: {timeframe}, Price: {price}")
-            asyncio.create_task(handle_sell_anomaly(db, ticker, anomaly_type, price, timeframe, time))
+            asyncio.create_task(handle_sell_anomaly(db, ticker, anomaly_type, price, timeframe, unix_ts))
 
     db.close()
 
 
 async def start_accelpix_loop():
     print("🔁 Entered start_accelpix_loop")
-    # print("🚀 Starting broadcast_random_counter task")
-    # asyncio.create_task(broadcast_random_counter())
-    # Load anomaly tickers
+
     db = SessionLocal()
     try:
         tickers = load_anomaly_tickers(db)
@@ -68,7 +76,6 @@ async def start_accelpix_loop():
     finally:
         db.close()
 
-    # Setup event handlers
     def on_connected():
         print("✅ Accelpix Connected")
 
@@ -79,7 +86,6 @@ async def start_accelpix_loop():
     api.on_connection_stopped(on_disconnected)
     api.on_trade_update(on_trade)
 
-    # Initialize Accelpix connection
     try:
         print("🔌 Initializing Accelpix...")
         await api.initialize("WdcH05al5jj3VYKpb3DCpxU4AMk=", "apidata.accelpix.in")
@@ -88,7 +94,6 @@ async def start_accelpix_loop():
         print("❌ Failed to initialize Accelpix:", e)
         return
 
-    # Subscribe to symbols
     db = SessionLocal()
     try:
         symbols = get_subscribe_symbols(db)
